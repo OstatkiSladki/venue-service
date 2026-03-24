@@ -66,9 +66,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Company'
+                $ref: '#/components/schemas/CompanyListResponse'
         '403':
           description: Недостаточно прав
           content:
@@ -136,10 +134,10 @@ paths:
             type: integer
       requestBody:
         required: true
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CompanyUpdate'
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyUpdate'
       responses:
         '200':
           description: Обновлено
@@ -223,15 +221,19 @@ paths:
           schema:
             type: integer
             default: 0
+        - in: query
+          name: include_deleted
+          schema:
+            type: boolean
+            default: false
+          description: Только для роли admin
       responses:
         '200':
           description: Успешный ответ
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Venue'
+                $ref: '#/components/schemas/VenueListResponse'
     post:
       tags: [Venues]
       summary: Создать заведение
@@ -295,6 +297,10 @@ paths:
       responses:
         '200':
           description: Обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
         '403':
           description: Недостаточно прав
     delete:
@@ -338,9 +344,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Payout'
+                $ref: '#/components/schemas/PayoutListResponse'
         '403':
           description: Доступ запрещен (чужое заведение)
     post:
@@ -383,6 +387,17 @@ components:
       description: JWT токен, валидируется API Gateway
 
   schemas:
+    PaginationMeta:
+      type: object
+      required: [limit, offset, total]
+      properties:
+        limit:
+          type: integer
+        offset:
+          type: integer
+        total:
+          type: integer
+
     # --- Enums ---
     UserRole:
       type: string
@@ -437,6 +452,17 @@ components:
         is_active:
           type: boolean
 
+    CompanyListResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Company'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
     # --- Venues ---
     Venue:
       type: object
@@ -473,7 +499,7 @@ components:
           description: Текущий баланс на выплату
         work_schedule:
           type: object
-          description: JSON объект с графиком работы (например, {"mon": "09:00-21:00"})
+          description: 'JSON объект с графиком работы (например, {"mon": "09:00-21:00"})'
           example: { "mon": "09:00-21:00", "tue": "09:00-21:00" }
         is_open:
           type: boolean
@@ -543,6 +569,17 @@ components:
           format: double
           description: Только для admin
 
+    VenueListResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Venue'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
     # --- Payouts ---
     Payout:
       type: object
@@ -592,16 +629,43 @@ components:
           type: object
           description: Реквизиты для выплаты
 
+    PayoutListResponse:
+      type: object
+      required: [items, meta]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Payout'
+        meta:
+          $ref: '#/components/schemas/PaginationMeta'
+
     # --- Errors ---
     Error:
       type: object
+      required: [code, message, details, timestamp]
       properties:
-        detail:
-          type: string
-          example: "Not enough permissions"
         code:
           type: string
           example: "FORBIDDEN"
+        message:
+          type: string
+          example: "Not enough permissions"
+        details:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+        timestamp:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+          nullable: true
+        trace_id:
+          type: string
+          nullable: true
 
   headers:
     # Документируем заголовки, которые сервис ожидает от Gateway

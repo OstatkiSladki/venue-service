@@ -1,42 +1,42 @@
 # WAL.md — Write-Ahead Log (состояние сессии)
 
-Этот файл содержит текущее состояние проекта. Он обновляется AI в конце каждой сессии, а также при критических изменениях. Человек проверяет его ежедневно.
-
 ## Current Phase
-<!-- Укажи активную задачу: PROP-XXX: краткое описание — статус (IN PROGRESS / BLOCKED) -->
-**PROP‑001: OPROTO Message Verification — IN PROGRESS**
+**VENUE-SPRINT-2: Stabilization + Public Schema + Venues Read/Write — IN PROGRESS**
 
 ## Completed
-<!-- Завершённые пункты (можно группировать по PROP). Каждый: ссылка на спеки + краткий итог -->
-- `spec://com.example.oproto/PROP-001#transport` — реализован базовый транспорт (тесты проходят)
-- `spec://com.example.oproto/PROP-001#message-format` — protobuf схемы утверждены
-- `spec://com.example.oproto/PROP-001#security` — TLS настройки, проверено на тестовом стенде
+- `spec://project.venue-service/venue-spec#project-structure` — стабилизирован единый app entrypoint (`src.app`) и поправлены import-цепочки API v1.
+- `spec://project.venue-service/venue-spec#configuration` — сохранен typed config; добавлен trusted-networks parsing для gateway auth.
+- `spec://project.venue-service/venue-spec#database` — ORM модели переведены на default schema `public` (без явного `schema=...`).
+- `spec://project.venue-service/venue-spec#migrations` — baseline миграция обновлена на `public`; добавлена миграция `20260324_0002` для безопасного переноса `venue -> public`.
+- `spec://project.venue-service/venue-spec#security.headers` — добавлен `GatewayAuthMiddleware` с валидацией заголовков и trusted network проверкой.
+- `spec://project.venue-service/venue-spec#venues-api` — добавлен слой `VenueRepository`/`VenueService` и роутер `/api/v1/venues` (list/get/create/update/delete soft).
+- `spec://project.venue-service/venue-spec#authorization` — реализован RBAC для venues: admin full, staff create/update в рамках своей компании, user read-only.
+- `spec://project.venue-service/venue-spec#error-handling` — error envelope подтвержден и синхронизирован для middleware/exception handler.
+- `spec://project.venue-service/venue-spec#contract` — `venue-api.yaml` обновлен: list responses через paginated envelope, исправлен `PATCH /companies` indentation, Error schema приведена к runtime формату.
+- `spec://project.venue-service/venue-spec#sql-baseline` — `specs/common/venue.sql` обновлен на `public` schema.
 
 ## In Progress
-<!-- Детали текущей работы: DONE / TODO с ссылками на спеки -->
 ### DONE
-- `spec://com.example.oproto/PROP-001#verification.normal` — хэш-матчер (`crates/oproto-core/src/verify.rs`)
-- `spec://com.example.oproto/PROP-001#verification.timeout` — базовый таймаут (600 сек), конфиг в `config.rs`
+- `spec://project.venue-service/venue-spec#tests` — расширен тестовый набор: bootstrap smoke, auth middleware checks, OpenAPI contract smoke, venue service RBAC tests.
+
 ### TODO
-- `spec://com.example.oproto/PROP-001#verification.degraded` — обработка деградированного режима
-- `spec://com.example.oproto/PROP-001#verification.mismatch` — логика расхождения
+- `spec://project.venue-service/venue-spec#ci` — добавить CI pipeline с обязательными `pytest`, `mypy`, `ruff` и migration checks.
+- `spec://project.venue-service/venue-spec#events` — подготовить event seam для future RabbitMQ integration (без runtime publish).
+- `spec://project.venue-service/venue-spec#venues-geo` — усилить geo-search (bounding box + perf checks) и покрыть интеграционными тестами.
 
 ## Known Issues
-<!-- Конкретные проблемы: файл, строка, описание -->
-1. **Reconnection после потери сети** — `crates/otg-core/src/telegram.rs:120`, логика не обрабатывает edge‑case.
-2. **Неясная семантика `edge_url`** — protobuf поле `MediaRef.edge_url` требует уточнения.
+1. Для staff company-scope в create/update venues используется вывод company через `X-User-Venue-ID` -> lookup venue. Это работает в текущем контракте, но требует отдельной валидации на целостность staff profile в Auth сервисе на следующем этапе.
+2. Контракт payouts list уже стандартизирован как paginated envelope в `venue-api.yaml`, но runtime payouts endpoint еще не реализован (это ожидаемо, не regression).
 
 ## Decisions Pending
-<!-- Вопросы к человеку, требующие решения -->
-- `spec://com.example.oproto/PROP-001#verification.mismatch` — что делать, если у edge есть сообщение, которого нет в Telegram? Нужно решение: игнорировать, логировать, запрашивать подтверждение?
+- Нужен ли отдельный header/claim для `staff_company_id`, чтобы убрать косвенное определение company через `X-User-Venue-ID`.
 
 ## Session Context
-<!-- Контекст для следующей сессии: с чего начать, ключевые файлы, что не трогать -->
-- **Start with**: прочитать `spec://com.example.oproto/PROP-001#verification.degraded`
+- **Start with**: прогнать `uv run pytest`, `uv run mypy src`, `uv run ruff check .`.
 - **Key files**:
-  - `crates/oproto-core/src/verify.rs`
-  - `crates/otg-core/src/telegram.rs`
-- **Run first**: `cargo test -p oproto-core -- --nocapture`
-- **Watch out**: **НЕ трогать** `match_by_hash()` — функция стабильна и покрыта тестами.
-
----
+  - `src/app.py`
+  - `src/middleware/auth.py`
+  - `src/api/v1/venues.py`
+  - `src/services/venue_service.py`
+  - `alembic/versions/20260324_0002_migrate_venue_schema_to_public.py`
+- **Watch out**: не нарушить текущий `public` schema контракт и не ослабить trusted network проверки middleware.

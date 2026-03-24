@@ -1,9 +1,7 @@
 -- VENUE SERVICE - db_venue
 -- Таблицы: companies, venues, payouts, venue_documents
 
-CREATE SCHEMA IF NOT EXISTS "venue";
-
-CREATE TABLE "venue"."companies" (
+CREATE TABLE "companies" (
     "id" BIGSERIAL PRIMARY KEY,
     "name" VARCHAR(255) NOT NULL,
     "inn" VARCHAR(20),
@@ -13,7 +11,7 @@ CREATE TABLE "venue"."companies" (
 );
 
 
-CREATE TABLE "venue"."venues" (
+CREATE TABLE "venues" (
     "id" BIGSERIAL PRIMARY KEY,
     "company_id" BIGINT,
     "name" VARCHAR(255) NOT NULL,
@@ -29,14 +27,14 @@ CREATE TABLE "venue"."venues" (
     "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "deleted_at" TIMESTAMP WITH TIME ZONE,
-    CONSTRAINT "fk_venues_company" FOREIGN KEY ("company_id") REFERENCES "venue"."companies"("id") ON DELETE SET NULL
+    CONSTRAINT "fk_venues_company" FOREIGN KEY ("company_id") REFERENCES "companies"("id") ON DELETE SET NULL
 );
-CREATE INDEX "venues_idx_company" ON "venue"."venues" ("company_id");
-CREATE INDEX "venues_idx_location" ON "venue"."venues" ("latitude", "longitude");
-CREATE INDEX "venues_idx_open" ON "venue"."venues" ("is_open", "deleted_at");
+CREATE INDEX "venues_idx_company" ON "venues" ("company_id");
+CREATE INDEX "venues_idx_location" ON "venues" ("latitude", "longitude");
+CREATE INDEX "venues_idx_open" ON "venues" ("is_open", "deleted_at");
 
 
-CREATE TABLE "venue"."payouts" (
+CREATE TABLE "payouts" (
     "id" BIGSERIAL PRIMARY KEY,
     "venue_id" BIGINT NOT NULL,
     "amount" DECIMAL(10, 2) NOT NULL,
@@ -46,9 +44,9 @@ CREATE TABLE "venue"."payouts" (
     "payment_details" JSONB DEFAULT '{}',
     "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "paid_at" TIMESTAMP WITH TIME ZONE,
-    CONSTRAINT "fk_payouts_venue" FOREIGN KEY ("venue_id") REFERENCES "venue"."venues"("id") ON DELETE RESTRICT
+    CONSTRAINT "fk_payouts_venue" FOREIGN KEY ("venue_id") REFERENCES "venues"("id") ON DELETE RESTRICT
 );
-CREATE INDEX "payouts_idx_venue" ON "venue"."payouts" ("venue_id", "status");
+CREATE INDEX "payouts_idx_venue" ON "payouts" ("venue_id", "status");
 
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -59,4 +57,4 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER update_venues_updated_at BEFORE UPDATE ON "venue"."venues" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_venues_updated_at BEFORE UPDATE ON "venues" FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();

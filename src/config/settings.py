@@ -1,7 +1,8 @@
 from functools import lru_cache
+from ipaddress import IPv4Network, IPv6Network, ip_network
+from typing import Any
 
-from pydantic import Field
-from pydantic import field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -29,6 +30,19 @@ class Settings(BaseSettings):
     gateway_trusted_networks: str = Field(
         default="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1/32"
     )
+
+    @field_validator("debug", mode="before")
+    @classmethod
+    def normalize_debug_value(cls, value: Any) -> bool:
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            normalized = value.strip().lower()
+            if normalized in {"1", "true", "yes", "on", "debug", "development"}:
+                return True
+            if normalized in {"0", "false", "no", "off", "release", "production"}:
+                return False
+        return bool(value)
 
 
 @lru_cache(maxsize=1)

@@ -2,8 +2,7 @@ from fastapi import FastAPI
 
 from src.utils import cors_setup, lifespan
 from src.api import api_router
-from src.config.logging import configure_logging
-from src.config.settings import get_settings
+from src.config import configure_logging, get_settings
 from src.middleware import register_exception_handlers, RequestContextMiddleware
 
 

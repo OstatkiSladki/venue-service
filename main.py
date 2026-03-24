@@ -1,5 +1,5 @@
 import uvicorn
-from src.config.settings import get_settings
+from src.config import get_settings
 
 if __name__ == "__main__":
     settings = get_settings()

@@ -1,0 +1,36 @@
+from functools import lru_cache
+
+from pydantic import Field
+from pydantic import field_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+
+    app_name: str = "venue-service"
+    app_version: str = "1.0.0"
+    app_env: str = "development"
+    debug: bool = False
+
+    host: str = "0.0.0.0"
+    port: int = 8002
+    workers: int = 1
+    reload: bool = False
+
+    database_url: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/db_venue"
+    database_pool_size: int = 10
+    database_max_overflow: int = 20
+    database_pool_timeout: int = 30
+
+    log_level: str = "INFO"
+    log_format: str = "json"
+
+    gateway_trusted_networks: str = Field(
+        default="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1/32"
+    )
+
+
+@lru_cache(maxsize=1)
+def get_settings() -> Settings:
+    return Settings()

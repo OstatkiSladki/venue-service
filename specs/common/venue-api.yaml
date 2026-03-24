@@ -1,0 +1,620 @@
+openapi: 3.0.3
+info:
+  title: Venue Service API
+  description: |
+    Сервис управления компаниями, заведениями и выплатами.
+    
+    **Архитектурные заметки:**
+    - Сервис работает за API Gateway (Kong).
+    - Gateway валидирует JWT и инжектирует заголовки `X-User-*`.
+    - Сервис доверяет этим заголовкам (внутренняя сеть).
+    - Все денежные суммы передаются с точностью до 2 знаков после запятой.
+  version: 1.0.0
+  contact:
+    name: Architecture Team
+    email: tech@project.local
+
+servers:
+  - url: http://localhost:8002/api/v1
+    description: Local Development
+  - url: https://api.stage.project.local/venue/api/v1
+    description: Staging
+  - url: https://api.project.local/venue/api/v1
+    description: Production
+
+tags:
+  - name: Companies
+    description: Управление юридическими лицами (сетями)
+  - name: Venues
+    description: Управление точками выдачи (заведениями)
+  - name: Payouts
+    description: История выплат и балансы партнеров
+
+security:
+  - BearerAuth: []
+
+paths:
+  /companies:
+    get:
+      tags: [Companies]
+      summary: Список компаний
+      description: |
+        Доступно только для администраторов платформы.
+        Поддерживает пагинацию и фильтрацию удаленных.
+      operationId: listCompanies
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+        - in: query
+          name: include_deleted
+          schema:
+            type: boolean
+            default: false
+          description: Только для роли admin
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Company'
+        '403':
+          description: Недостаточно прав
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    post:
+      tags: [Companies]
+      summary: Создать компанию
+      description: Регистрация нового юридического лица. Только admin.
+      operationId: createCompany
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CompanyCreate'
+      responses:
+        '201':
+          description: Компания создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '400':
+          description: Ошибка валидации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /companies/{company_id}:
+    get:
+      tags: [Companies]
+      summary: Получить компанию
+      operationId: getCompany
+      parameters:
+        - in: path
+          name: company_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '404':
+          description: Компания не найдена
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    patch:
+      tags: [Companies]
+      summary: Обновить компанию
+      operationId: updateCompany
+      parameters:
+        - in: path
+          name: company_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompanyUpdate'
+      responses:
+        '200':
+          description: Обновлено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Company'
+        '403':
+          description: Недостаточно прав
+    delete:
+      tags: [Companies]
+      summary: Удалить компанию (Soft Delete)
+      description: Устанавливает deleted_at. Только admin.
+      operationId: deleteCompany
+      parameters:
+        - in: path
+          name: company_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Удалено
+        '403':
+          description: Недостаточно прав
+
+  /venues:
+    get:
+      tags: [Venues]
+      summary: Список заведений
+      description: |
+        Публичный эндпоинт для поиска заведений.
+        Поддерживает гео-фильтрацию (lat, lon, radius) и поиск по названию.
+        Доступно всем авторизованным пользователям.
+      operationId: listVenues
+      parameters:
+        - in: query
+          name: lat
+          schema:
+            type: number
+            format: double
+            example: 55.7558
+          description: Широта для поиска рядом
+        - in: query
+          name: lon
+          schema:
+            type: number
+            format: double
+            example: 37.6173
+          description: Долгота для поиска рядом
+        - in: query
+          name: radius
+          schema:
+            type: number
+            default: 5
+            example: 10
+          description: Радиус поиска в км
+        - in: query
+          name: name
+          schema:
+            type: string
+            example: "Burger King"
+          description: Поиск по названию заведения (частичное совпадение, регистронезависимый)
+        - in: query
+          name: is_open
+          schema:
+            type: boolean
+          description: Фильтр только по открытым сейчас
+        - in: query
+          name: company_id
+          schema:
+            type: integer
+          description: Фильтр по сети
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Venue'
+    post:
+      tags: [Venues]
+      summary: Создать заведение
+      description: Доступно для admin или staff (при привязке к компании).
+      operationId: createVenue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueCreate'
+      responses:
+        '201':
+          description: Заведение создано
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
+        '403':
+          description: Недостаточно прав
+
+  /venues/{venue_id}:
+    get:
+      tags: [Venues]
+      summary: Получить заведение
+      operationId: getVenue
+      parameters:
+        - in: path
+          name: venue_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Venue'
+        '404':
+          description: Не найдено
+    patch:
+      tags: [Venues]
+      summary: Обновить заведение
+      description: |
+        Обновление информации о заведении.
+        Поле commission_rate редактируется только admin.
+      operationId: updateVenue
+      parameters:
+        - in: path
+          name: venue_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VenueUpdate'
+      responses:
+        '200':
+          description: Обновлено
+        '403':
+          description: Недостаточно прав
+    delete:
+      tags: [Venues]
+      summary: Удалить заведение (Soft Delete)
+      description: Только admin.
+      operationId: deleteVenue
+      parameters:
+        - in: path
+          name: venue_id
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Удалено
+
+  /venues/{venue_id}/payouts:
+    get:
+      tags: [Payouts]
+      summary: История выплат заведения
+      description: |
+        Доступно для:
+        - Staff (только для своего venue_id)
+        - Admin (для любого venue_id)
+      operationId: listPayouts
+      parameters:
+        - in: path
+          name: venue_id
+          required: true
+          schema:
+            type: integer
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, paid, cancelled]
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Payout'
+        '403':
+          description: Доступ запрещен (чужое заведение)
+    post:
+      tags: [Payouts]
+      summary: Создать заявку на выплату
+      description: |
+        Инициирует выплату. 
+        В текущей реализации доступно только для admin (или системный вызов).
+      operationId: createPayout
+      security:
+        - BearerAuth: [] # Требуется роль admin
+      parameters:
+        - in: path
+          name: venue_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutRequest'
+      responses:
+        '201':
+          description: Заявка создана
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+        '403':
+          description: Требуется роль admin
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT токен, валидируется API Gateway
+
+  schemas:
+    # --- Enums ---
+    UserRole:
+      type: string
+      enum: [user, staff, admin]
+      description: Роль пользователя в системе
+
+    PayoutStatus:
+      type: string
+      enum: [pending, paid, cancelled]
+      description: Статус выплаты
+
+    # --- Companies ---
+    Company:
+      type: object
+      properties:
+        id:
+          type: integer
+          example: 1
+        name:
+          type: string
+          example: "ООО Ромашка"
+        inn:
+          type: string
+          example: "7701234567"
+          nullable: true
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    CompanyCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+        inn:
+          type: string
+
+    CompanyUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        inn:
+          type: string
+        is_active:
+          type: boolean
+
+    # --- Venues ---
+    Venue:
+      type: object
+      properties:
+        id:
+          type: integer
+        company_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+          example: 55.7558
+        longitude:
+          type: number
+          format: double
+          example: 37.6173
+        phone:
+          type: string
+          nullable: true
+        commission_rate:
+          type: number
+          format: double
+          example: 10.00
+          description: Процент комиссии платформы
+        payout_balance:
+          type: number
+          format: double
+          example: 15000.50
+          description: Текущий баланс на выплату
+        work_schedule:
+          type: object
+          description: JSON объект с графиком работы (например, {"mon": "09:00-21:00"})
+          example: { "mon": "09:00-21:00", "tue": "09:00-21:00" }
+        is_open:
+          type: boolean
+          description: Статус доступности прямо сейчас (расчетный или ручной)
+        rating:
+          type: number
+          format: double
+          maximum: 5.0
+          minimum: 0.0
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    VenueCreate:
+      type: object
+      required: [name, address, company_id]
+      properties:
+        company_id:
+          type: integer
+        name:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        phone:
+          type: string
+        work_schedule:
+          type: object
+        commission_rate:
+          type: number
+          format: double
+          description: Только для admin
+
+    VenueUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        address:
+          type: string
+        latitude:
+          type: number
+          format: double
+        longitude:
+          type: number
+          format: double
+        phone:
+          type: string
+        work_schedule:
+          type: object
+        is_open:
+          type: boolean
+        commission_rate:
+          type: number
+          format: double
+          description: Только для admin
+
+    # --- Payouts ---
+    Payout:
+      type: object
+      properties:
+        id:
+          type: integer
+        venue_id:
+          type: integer
+        amount:
+          type: number
+          format: double
+          description: Сумма выплаты
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        status:
+          $ref: '#/components/schemas/PayoutStatus'
+        payment_details:
+          type: object
+          description: Реквизиты или комментарий к выплате
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        paid_at:
+          type: string
+          format: date-time
+          nullable: true
+
+    PayoutRequest:
+      type: object
+      required: [amount, period_start, period_end]
+      properties:
+        amount:
+          type: number
+          format: double
+        period_start:
+          type: string
+          format: date
+        period_end:
+          type: string
+          format: date
+        payment_details:
+          type: object
+          description: Реквизиты для выплаты
+
+    # --- Errors ---
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: "Not enough permissions"
+        code:
+          type: string
+          example: "FORBIDDEN"
+
+  headers:
+    # Документируем заголовки, которые сервис ожидает от Gateway
+    X-User-ID:
+      schema:
+        type: string
+      description: ID пользователя из JWT
+    X-User-Role:
+      schema:
+        type: string
+        enum: [user, staff, admin]
+      description: Роль пользователя
+    X-User-Venue-ID:
+      schema:
+        type: string
+      description: ID заведения для роли staff (опционально)

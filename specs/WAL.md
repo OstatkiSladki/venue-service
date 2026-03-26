@@ -14,6 +14,10 @@
 - `spec://project.venue-service/venue-spec#error-handling` — error envelope подтвержден и синхронизирован для middleware/exception handler.
 - `spec://project.venue-service/venue-spec#contract` — `venue-api.yaml` обновлен: list responses через paginated envelope, исправлен `PATCH /companies` indentation, Error schema приведена к runtime формату.
 - `spec://project.venue-service/venue-spec#sql-baseline` — `specs/common/venue.sql` обновлен на `public` schema.
+- `spec://project.venue-service/venue-spec#payouts-api` — реализован runtime payouts slice: `PayoutRepository`/`PayoutService`/`/api/v1/venues/{venue_id}/payouts` (GET list + POST create) с RBAC по ролям.
+- `spec://project.venue-service/venue-spec#events` — добавлен event seam: `src/events/{topics,schemas,publisher}.py`, `NoopEventPublisher`, публикация `payout.created` после успешного create payout (без реального AMQP runtime).
+- `spec://project.venue-service/venue-spec#tests` — добавлены unit/integration тесты для payouts + расширен OpenAPI/bootstrapping smoke.
+- `spec://project.venue-service/venue-spec#quality-gates` — baseline стабилизирован: `uv run pytest`, `uv run mypy src`, `uv run ruff check .` проходят успешно.
 
 ## In Progress
 ### DONE
@@ -21,12 +25,12 @@
 
 ### TODO
 - `spec://project.venue-service/venue-spec#ci` — добавить CI pipeline с обязательными `pytest`, `mypy`, `ruff` и migration checks.
-- `spec://project.venue-service/venue-spec#events` — подготовить event seam для future RabbitMQ integration (без runtime publish).
+- `spec://project.venue-service/venue-spec#events` — заменить `NoopEventPublisher` на реальный RabbitMQ publisher (`aio-pika`, confirm/retry, DLQ policy, telemetry).
 - `spec://project.venue-service/venue-spec#venues-geo` — усилить geo-search (bounding box + perf checks) и покрыть интеграционными тестами.
+- `spec://project.venue-service/venue-spec#payouts-api` — добавить публичный статусный flow (`paid/cancelled`) и синхронизировать изменение `venue.payout_balance` на переходе в `paid`.
 
 ## Known Issues
 1. Для staff company-scope в create/update venues используется вывод company через `X-User-Venue-ID` -> lookup venue. Это работает в текущем контракте, но требует отдельной валидации на целостность staff profile в Auth сервисе на следующем этапе.
-2. Контракт payouts list уже стандартизирован как paginated envelope в `venue-api.yaml`, но runtime payouts endpoint еще не реализован (это ожидаемо, не regression).
 
 ## Decisions Pending
 - Нужен ли отдельный header/claim для `staff_company_id`, чтобы убрать косвенное определение company через `X-User-Venue-ID`.
@@ -37,6 +41,7 @@
   - `src/app.py`
   - `src/middleware/auth.py`
   - `src/api/v1/venues.py`
-  - `src/services/venue_service.py`
-  - `alembic/versions/20260324_0002_migrate_venue_schema_to_public.py`
-- **Watch out**: не нарушить текущий `public` schema контракт и не ослабить trusted network проверки middleware.
+  - `src/api/v1/payouts.py`
+  - `src/services/payout_service.py`
+  - `src/events/publisher.py`
+- **Watch out**: не нарушить текущий `public` schema контракт; при внедрении real RabbitMQ сохранить publish-after-commit и не менять `payout_balance` на create.

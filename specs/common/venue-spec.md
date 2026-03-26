@@ -310,7 +310,7 @@ LOG_LEVEL=INFO
 LOG_FORMAT=json
 
 # Security (from Gateway)
-GATEWAY_TRUSTED_NETWORKS=10.0.0.0/8,172.16.0.0/12
+# IP whitelist check is disabled in current phase
 ```
 
 ### 4.2. Settings Management (src/config/settings.py)
@@ -621,20 +621,18 @@ Interface BaseRepository[T]:
       │                    │  X-Request-ID      │
       │                    │                    │
       │                    │                    │ 5. Trust Headers
-      │                    │                    │ (from trusted network)
+      │                    │                    │ (gateway-managed identity)
 ```
 
 ### 7.2. Middleware: Auth (src/middleware/auth.py)
 
 **Задачи:**
 - Валидация наличия обязательных identity headers
-- Проверка доверенной сети (Gateway only)
 - Извлечение контекста для request scope
 - Блокировка прямых запросов без Gateway
 
 **Требования:**
 - Отклонять запросы без `X-User-ID`, `X-Request-ID`
-- Проверять IP адрес против `GATEWAY_TRUSTED_NETWORKS`
 - Логировать все auth failures
 - Возвращать стандартизированные 401/403 ошибки
 
@@ -1111,7 +1109,7 @@ alembic downgrade -1
 |------|-------------|---------|-----------|
 | Geo search performance | Средняя | Высокое | PostGIS, caching, bounding box optimization |
 | RabbitMQ message loss | Низкая | Критичное | Publisher confirms, retry logic, dead letter queue |
-| Gateway header spoofing | Низкая | Критичное | Network isolation, IP whitelist, mTLS |
+| Gateway header spoofing | Низкая | Критичное | Header validation, gateway-only routing, mTLS |
 | Database connection exhaustion | Средняя | Высокое | Connection pooling, circuit breaker, monitoring |
 | Money precision errors | Средняя | Высокое | Decimal type everywhere, validation, tests |
 
@@ -1129,4 +1127,4 @@ alembic downgrade -1
 
 5. **Деньги** — Все денежные поля используют DECIMAL в БД и Decimal в Python. Не использовать float для финансовых расчетов.
 
-6. **API Gateway** — Сервис доверяет заголовкам X-User-* только от доверенной сети Gateway. Прямые запросы без Gateway должны блокироваться.
+6. **API Gateway** — Сервис доверяет заголовкам X-User-*, инжектируемым gateway. В текущей фазе IP whitelist check не применяется.

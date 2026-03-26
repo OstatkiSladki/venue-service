@@ -338,6 +338,17 @@ paths:
           schema:
             type: string
             enum: [pending, paid, cancelled]
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+            maximum: 100
+        - in: query
+          name: offset
+          schema:
+            type: integer
+            default: 0
       responses:
         '200':
           description: Успешный ответ

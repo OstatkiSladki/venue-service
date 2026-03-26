@@ -25,6 +25,11 @@ class Settings(BaseSettings):
 
   log_level: str = "INFO"
   log_format: str = "json"
+  rabbitmq_enabled: bool = False
+  rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+  rabbitmq_publish_retry_attempts: int = 3
+  rabbitmq_publish_retry_backoff_ms: int = 200
+  rabbitmq_connect_timeout_s: float = 5.0
 
   @field_validator("debug", mode="before")
   @classmethod

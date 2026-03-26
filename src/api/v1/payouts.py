@@ -28,7 +28,12 @@ async def list_payouts(
   )
 
 
-@router.post("", response_model=PayoutResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+  "",
+  response_model=PayoutResponse,
+  status_code=status.HTTP_201_CREATED,
+  responses={503: {"description": "Event publish failed"}},
+)
 async def create_payout(
   venue_id: int,
   payload: PayoutCreate,
@@ -43,7 +48,11 @@ async def create_payout(
   return PayoutResponse.model_validate(payout)
 
 
-@router.patch("/{payout_id}", response_model=PayoutResponse)
+@router.patch(
+  "/{payout_id}",
+  response_model=PayoutResponse,
+  responses={503: {"description": "Event publish failed"}},
+)
 async def patch_payout_status(
   venue_id: int,
   payout_id: int,

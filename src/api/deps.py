@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core_exceptions import ForbiddenError, UnauthorizedError
 from src.db.session import get_db_session
+from src.events.publisher import EventPublisher, NoopEventPublisher
 from src.schemas.common import IdentityContext, UserRole
 from src.services.company_service import CompanyService
 from src.services.payout_service import PayoutService
@@ -40,7 +41,15 @@ async def get_venue_service(
   return VenueService(session=session)
 
 
+async def get_event_publisher(request: Request) -> EventPublisher:
+  publisher = getattr(request.app.state, "event_publisher", None)
+  if publisher is None:
+    return NoopEventPublisher()
+  return cast(EventPublisher, publisher)
+
+
 async def get_payout_service(
   session: Annotated[AsyncSession, Depends(get_db_session)],
+  event_publisher: Annotated[EventPublisher, Depends(get_event_publisher)],
 ) -> PayoutService:
-  return PayoutService(session=session)
+  return PayoutService(session=session, event_publisher=event_publisher)

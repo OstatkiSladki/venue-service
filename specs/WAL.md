@@ -20,6 +20,9 @@
 - `spec://project.venue-service/venue-spec#quality-gates` — baseline стабилизирован: `uv run pytest`, `uv run mypy src`, `uv run ruff check .` проходят успешно.
 - `spec://project.venue-service/venue-spec#api-layer` — list query параметры в `api/v1` унифицированы через Pydantic query schemas и передаются в service layer как typed filter objects.
 - `spec://project.venue-service/venue-spec#contract` — `GET /venues/{venue_id}/payouts` дополнен query параметрами `limit/offset` в `venue-api.yaml`.
+- `spec://project.venue-service/venue-spec#payouts-api` — добавлен публичный `PATCH /venues/{venue_id}/payouts/{payout_id}` для `pending -> paid/cancelled`, с RBAC `admin-only`.
+- `spec://project.venue-service/venue-spec#payouts-balance` — при `paid` выполняется списание `venue.payout_balance` на сумму payout; при недостатке средств возвращается `409`.
+- `spec://project.venue-service/venue-spec#events` — при `pending -> paid` публикуется `payout.paid` через текущий event seam после commit.
 
 ## In Progress
 ### DONE
@@ -29,7 +32,6 @@
 - `spec://project.venue-service/venue-spec#ci` — добавить CI pipeline с обязательными `pytest`, `mypy`, `ruff` и migration checks.
 - `spec://project.venue-service/venue-spec#events` — заменить `NoopEventPublisher` на реальный RabbitMQ publisher (`aio-pika`, confirm/retry, DLQ policy, telemetry).
 - `spec://project.venue-service/venue-spec#venues-geo` — усилить geo-search (bounding box + perf checks) и покрыть интеграционными тестами.
-- `spec://project.venue-service/venue-spec#payouts-api` — добавить публичный статусный flow (`paid/cancelled`) и синхронизировать изменение `venue.payout_balance` на переходе в `paid`.
 
 ## Known Issues
 1. Для staff company-scope в create/update venues используется вывод company через `X-User-Venue-ID` -> lookup venue. Это работает в текущем контракте, но требует отдельной валидации на целостность staff profile в Auth сервисе на следующем этапе.

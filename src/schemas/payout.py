@@ -9,37 +9,48 @@ from src.schemas.common import PaginationQuery
 
 
 class PayoutStatus(StrEnum):
-    PENDING = "pending"
-    PAID = "paid"
-    CANCELLED = "cancelled"
+  PENDING = "pending"
+  PAID = "paid"
+  CANCELLED = "cancelled"
 
 
 class PayoutCreate(BaseModel):
-    amount: Decimal = Field(gt=Decimal("0"))
-    period_start: date
-    period_end: date
-    payment_details: dict[str, Any] = Field(default_factory=dict)
+  amount: Decimal = Field(gt=Decimal("0"))
+  period_start: date
+  period_end: date
+  payment_details: dict[str, Any] = Field(default_factory=dict)
 
-    @model_validator(mode="after")
-    def validate_period(self) -> "PayoutCreate":
-        if self.period_start > self.period_end:
-            raise ValueError("period_start must be less than or equal to period_end")
-        return self
+  @model_validator(mode="after")
+  def validate_period(self) -> "PayoutCreate":
+    if self.period_start > self.period_end:
+      raise ValueError("period_start must be less than or equal to period_end")
+    return self
 
 
 class PayoutListQuery(PaginationQuery):
-    status: PayoutStatus | None = None
+  status: PayoutStatus | None = None
+
+
+class PayoutStatusUpdate(BaseModel):
+  status: PayoutStatus
+  comment: str | None = Field(default=None, max_length=500)
+
+  @model_validator(mode="after")
+  def validate_status_transition_target(self) -> "PayoutStatusUpdate":
+    if self.status not in {PayoutStatus.PAID, PayoutStatus.CANCELLED}:
+      raise ValueError("status can only be paid or cancelled")
+    return self
 
 
 class PayoutResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+  model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    venue_id: int
-    amount: Decimal
-    period_start: date
-    period_end: date
-    status: PayoutStatus
-    payment_details: dict[str, Any]
-    created_at: datetime
-    paid_at: datetime | None
+  id: int
+  venue_id: int
+  amount: Decimal
+  period_start: date
+  period_end: date
+  status: PayoutStatus
+  payment_details: dict[str, Any]
+  created_at: datetime
+  paid_at: datetime | None

@@ -389,6 +389,46 @@ paths:
         '403':
           description: Требуется роль admin
 
+  /venues/{venue_id}/payouts/{payout_id}:
+    patch:
+      tags: [Payouts]
+      summary: Изменить статус выплаты
+      description: |
+        MVP endpoint смены статуса выплаты.
+        Доступно только для admin.
+        Разрешены только переходы из pending в paid/cancelled.
+      operationId: updatePayoutStatus
+      parameters:
+        - in: path
+          name: venue_id
+          required: true
+          schema:
+            type: integer
+        - in: path
+          name: payout_id
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PayoutStatusUpdate'
+      responses:
+        '200':
+          description: Статус обновлён
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payout'
+        '403':
+          description: Недостаточно прав
+        '404':
+          description: Payout или Venue не найден
+        '409':
+          description: Некорректный переход статуса или недостаточно средств
+
 components:
   securitySchemes:
     BearerAuth:
@@ -650,6 +690,17 @@ components:
             $ref: '#/components/schemas/Payout'
         meta:
           $ref: '#/components/schemas/PaginationMeta'
+
+    PayoutStatusUpdate:
+      type: object
+      required: [status]
+      properties:
+        status:
+          type: string
+          enum: [paid, cancelled]
+        comment:
+          type: string
+          nullable: true
 
     # --- Errors ---
     Error:

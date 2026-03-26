@@ -459,7 +459,7 @@ Interface PayoutService:
   - get_by_id(payout_id: int) -> Payout
   - list_by_venue(venue_id: int, filters) -> List[Payout]
   - create(data: PayoutRequest, venue_id: int, context: IdentityContext) -> Payout
-  - update_status(payout_id: int, status: str, context: IdentityContext) -> None
+  - update_status(venue_id: int, payout_id: int, status: str, context: IdentityContext) -> Payout
 ```
 
 ### 5.4. Repository Layer
@@ -651,6 +651,7 @@ Interface BaseRepository[T]:
 | venues | DELETE | ❌ | ❌ | ✅ |
 | payouts | GET (list) | ❌ | ✅* | ✅ |
 | payouts | CREATE | ❌ | ❌ | ✅ |
+| payouts | PATCH status | ❌ | ❌ | ✅ |
 
 \* — staff имеет доступ только к своим заведениям (по X-User-Venue-ID)
 
@@ -1119,12 +1120,13 @@ alembic downgrade -1
 
 1. **venue_documents таблица** — Исключена из текущей реализации согласно решению архитектуры. Может быть добавлена в будущих итерациях.
 
-2. **Payouts POST endpoint** — Доступен только для admin. Staff может только просматривать историю выплат своего заведения.
+2. **Payouts POST/PATCH endpoint** — CREATE и смена статуса доступны только для admin. Staff может только просматривать историю выплат своего заведения.
 
 3. **commission_rate** — Поле редактируется только admin. Staff не может изменять комиссию своего заведения.
 
 4. **Soft Delete** — Все запросы к БД должны по умолчанию фильтровать `deleted_at IS NULL`. Admin может использовать `include_deleted=true`.
 
 5. **Деньги** — Все денежные поля используют DECIMAL в БД и Decimal в Python. Не использовать float для финансовых расчетов.
+7. **Payout status flow (MVP)** — Разрешены только переходы `pending -> paid/cancelled`. При `paid` уменьшается `venue.payout_balance`; при нехватке баланса операция отклоняется (409).
 
 6. **API Gateway** — Сервис доверяет заголовкам X-User-*, инжектируемым gateway. В текущей фазе IP whitelist check не применяется.

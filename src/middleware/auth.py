@@ -1,12 +1,10 @@
 from datetime import datetime, timezone
-from ipaddress import ip_address
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.config import get_settings
-from src.core_exceptions import AppError, ForbiddenError, UnauthorizedError
+from src.core_exceptions import AppError, UnauthorizedError
 from src.schemas.common import IdentityContext, UserRole
 
 

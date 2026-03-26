@@ -4,6 +4,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from src.schemas.common import PaginationQuery
+
 
 class VenueCreate(BaseModel):
     company_id: int
@@ -25,6 +27,16 @@ class VenueUpdate(BaseModel):
     work_schedule: dict[str, Any] | None = None
     is_open: bool | None = None
     commission_rate: Decimal | None = None
+
+
+class VenueListQuery(PaginationQuery):
+    lat: Decimal | None = None
+    lon: Decimal | None = None
+    radius: Decimal | None = Field(default=Decimal("5"))
+    name: str | None = None
+    is_open: bool | None = None
+    company_id: int | None = None
+    include_deleted: bool = False
 
 
 class VenueResponse(BaseModel):

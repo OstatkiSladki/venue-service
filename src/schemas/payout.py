@@ -5,6 +5,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.schemas.common import PaginationQuery
+
 
 class PayoutStatus(StrEnum):
     PENDING = "pending"
@@ -23,6 +25,10 @@ class PayoutCreate(BaseModel):
         if self.period_start > self.period_end:
             raise ValueError("period_start must be less than or equal to period_end")
         return self
+
+
+class PayoutListQuery(PaginationQuery):
+    status: PayoutStatus | None = None
 
 
 class PayoutResponse(BaseModel):

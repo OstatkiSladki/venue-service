@@ -23,6 +23,8 @@
 - `spec://project.venue-service/venue-spec#payouts-api` — добавлен публичный `PATCH /venues/{venue_id}/payouts/{payout_id}` для `pending -> paid/cancelled`, с RBAC `admin-only`.
 - `spec://project.venue-service/venue-spec#payouts-balance` — при `paid` выполняется списание `venue.payout_balance` на сумму payout; при недостатке средств возвращается `409`.
 - `spec://project.venue-service/venue-spec#events` — при `pending -> paid` публикуется `payout.paid` через текущий event seam после commit.
+- `spec://project.venue-service/venue-spec#events` — `NoopEventPublisher` заменён на real `aio-pika` publisher с confirms/retry/reconnect и DLQ topology declaration.
+- `spec://project.venue-service/venue-spec#error-handling` — для обязательных publish операций действует fail-fast: при исчерпании retry возвращается `503 SERVICE_UNAVAILABLE`.
 
 ## In Progress
 ### DONE
@@ -30,14 +32,13 @@
 
 ### TODO
 - `spec://project.venue-service/venue-spec#ci` — добавить CI pipeline с обязательными `pytest`, `mypy`, `ruff` и migration checks.
-- `spec://project.venue-service/venue-spec#events` — заменить `NoopEventPublisher` на реальный RabbitMQ publisher (`aio-pika`, confirm/retry, DLQ policy, telemetry).
 - `spec://project.venue-service/venue-spec#venues-geo` — усилить geo-search (bounding box + perf checks) и покрыть интеграционными тестами.
 
 ## Known Issues
 1. Для staff company-scope в create/update venues используется вывод company через `X-User-Venue-ID` -> lookup venue. Это работает в текущем контракте, но требует отдельной валидации на целостность staff profile в Auth сервисе на следующем этапе.
 
 ## Decisions Pending
-- Нужен ли отдельный header/claim для `staff_company_id`, чтобы убрать косвенное определение company через `X-User-Venue-ID`.
+- Нужен ли отдельный header/claim для `staff_company_id`, чтобы убрать косвенное определение company через `X-User-Venue-ID` — **deferred** до согласования Auth-contract (причина: требует межсервисного изменения claims).
 - Нужно ли возвращать network-level trust checks на этапе production hardening (вне текущей фазы разработки).
 
 ## Session Context

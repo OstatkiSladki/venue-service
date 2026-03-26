@@ -388,6 +388,8 @@ paths:
                 $ref: '#/components/schemas/Payout'
         '403':
           description: Требуется роль admin
+        '503':
+          description: Сбой публикации события в message broker
 
   /venues/{venue_id}/payouts/{payout_id}:
     patch:
@@ -428,6 +430,8 @@ paths:
           description: Payout или Venue не найден
         '409':
           description: Некорректный переход статуса или недостаточно средств
+        '503':
+          description: Сбой публикации события в message broker
 
 components:
   securitySchemes:

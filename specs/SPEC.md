@@ -43,6 +43,7 @@
 - **Gateway IP-check override (2026-03-26):** для текущей фазы Venue Service проверка IP/trusted networks в middleware не применяется.
 - Источник доверия для identity — заголовки `X-User-*`, добавленные API Gateway.
 - При конфликте старых пунктов в продуктовой документации с этим override приоритет у этого правила до явной отмены.
+- **Event publish override (2026-03-26):** для mutating операций, где событие обязательно, применяется fail-fast политика публикации (ошибка broker -> 503).
 
 ---
 

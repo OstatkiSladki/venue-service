@@ -505,6 +505,8 @@ Interface BaseRepository[T]:
 - Retry logic при временных ошибках broker
 - Schema validation перед публикацией
 - Correlation ID propagation
+- Publisher confirms + reconnect + DLQ topology
+- Fail-fast при исчерпании retry (API возвращает 503)
 
 **Файл:** `src/events/topics.py`
 
@@ -517,6 +519,11 @@ Interface BaseRepository[T]:
 | venue.events | venue.deleted | Удаление заведения | Venue | Notification, Catalog |
 | payout.events | payout.created | Создание заявки на выплату | Venue | Payment, Notification |
 | payout.events | payout.paid | Выплата выполнена | Venue | Payment, Notification |
+
+**Runtime поведение (текущая фаза):**
+- Реальный publisher реализован через `aio-pika` (без outbox).
+- Событие публикуется после commit бизнес-транзакции.
+- Outbox/Exactly-once отложены на отдельную итерацию.
 
 **Файл:** `src/events/schemas.py`
 
@@ -1128,5 +1135,6 @@ alembic downgrade -1
 
 5. **Деньги** — Все денежные поля используют DECIMAL в БД и Decimal в Python. Не использовать float для финансовых расчетов.
 7. **Payout status flow (MVP)** — Разрешены только переходы `pending -> paid/cancelled`. При `paid` уменьшается `venue.payout_balance`; при нехватке баланса операция отклоняется (409).
+8. **Event delivery** — На текущем этапе используется fail-fast publish через RabbitMQ; outbox pattern пока не внедрён.
 
 6. **API Gateway** — Сервис доверяет заголовкам X-User-*, инжектируемым gateway. В текущей фазе IP whitelist check не применяется.

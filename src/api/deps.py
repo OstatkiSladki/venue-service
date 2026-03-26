@@ -1,7 +1,7 @@
 from typing import Annotated
 from typing import cast
 
-from fastapi import Depends, HTTPException, Request, Security, status
+from fastapi import Depends, Request, Security
 from fastapi.security import APIKeyHeader
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,10 +14,10 @@ from src.services.payout_service import PayoutService
 from src.services.venue_service import VenueService
 
 
-x_user_id_header = APIKeyHeader(name="X-User-ID", auto_error=False)
-x_user_role_header = APIKeyHeader(name="X-User-Role", auto_error=False)
-x_request_id_header = APIKeyHeader(name="X-Request-ID", auto_error=False)
-x_user_venue_id_header = APIKeyHeader(name="X-User-Venue-ID", auto_error=False)
+x_user_id_header = APIKeyHeader(name="X-User-ID", scheme_name="X-User-ID", auto_error=False)
+x_user_role_header = APIKeyHeader(name="X-User-Role", scheme_name="X-User-Role", auto_error=False)
+x_request_id_header = APIKeyHeader(name="X-Request-ID", scheme_name="X-Request-ID", auto_error=False)
+x_user_venue_id_header = APIKeyHeader(name="X-User-Venue-ID", scheme_name="X-User-Venue-ID", auto_error=False)
 
 def _require_header(name: str, value: str | None) -> str:
     if not value:

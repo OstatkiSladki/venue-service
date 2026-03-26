@@ -1,17 +1,11 @@
 from datetime import date, datetime
 from decimal import Decimal
-from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from src.models.enums import PayoutStatus
 from src.schemas.common import PaginationQuery
-
-
-class PayoutStatus(StrEnum):
-  PENDING = "pending"
-  PAID = "paid"
-  CANCELLED = "cancelled"
 
 
 class PayoutCreate(BaseModel):
@@ -54,3 +48,12 @@ class PayoutResponse(BaseModel):
   payment_details: dict[str, Any]
   created_at: datetime
   paid_at: datetime | None
+
+
+__all__ = [
+  "PayoutCreate",
+  "PayoutListQuery",
+  "PayoutResponse",
+  "PayoutStatus",
+  "PayoutStatusUpdate",
+]

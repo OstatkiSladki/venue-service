@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.payout import Payout
 from src.repositories.base import BaseRepository
-from src.schemas.payout import PayoutStatus
+from src.models.enums import PayoutStatus
 
 
 class PayoutRepository(BaseRepository[Payout]):
@@ -20,7 +20,7 @@ class PayoutRepository(BaseRepository[Payout]):
   ) -> list[Payout]:
     statement = select(Payout).where(Payout.venue_id == venue_id).order_by(Payout.id.desc())
     if status is not None:
-      statement = statement.where(Payout.status == status.value)
+      statement = statement.where(Payout.status == status)
 
     statement = statement.limit(limit).offset(offset)
     result = await self.session.execute(statement)
@@ -29,7 +29,7 @@ class PayoutRepository(BaseRepository[Payout]):
   async def count_by_venue(self, *, venue_id: int, status: PayoutStatus | None) -> int:
     statement = select(func.count(Payout.id)).where(Payout.venue_id == venue_id)
     if status is not None:
-      statement = statement.where(Payout.status == status.value)
+      statement = statement.where(Payout.status == status)
 
     result = await self.session.execute(statement)
     return int(result.scalar_one())

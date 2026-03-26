@@ -6,11 +6,12 @@ from src.core_exceptions import ConflictError, ForbiddenError, NotFoundError
 from src.events.publisher import EventPublisher, NoopEventPublisher
 from src.events.schemas import DomainEvent, EventMetadata
 from src.events.topics import PAYOUT_CREATED, PAYOUT_EXCHANGE, PAYOUT_PAID
+from src.models.enums import PayoutStatus
 from src.models.payout import Payout
 from src.repositories.payout_repository import PayoutRepository
 from src.repositories.venue_repository import VenueRepository
 from src.schemas.common import IdentityContext, UserRole
-from src.schemas.payout import PayoutCreate, PayoutListQuery, PayoutStatus, PayoutStatusUpdate
+from src.schemas.payout import PayoutCreate, PayoutListQuery, PayoutStatusUpdate
 
 
 class PayoutService:
@@ -63,7 +64,7 @@ class PayoutService:
         "period_start": payload.period_start,
         "period_end": payload.period_end,
         "payment_details": payload.payment_details,
-        "status": PayoutStatus.PENDING.value,
+        "status": PayoutStatus.PENDING,
       }
     )
     await self.session.commit()
@@ -78,7 +79,7 @@ class PayoutService:
         "amount": str(payout.amount),
         "period_start": payout.period_start.isoformat(),
         "period_end": payout.period_end.isoformat(),
-        "status": payout.status,
+        "status": payout.status.value,
       },
       metadata=EventMetadata(
         correlation_id=identity.request_id,
@@ -112,7 +113,7 @@ class PayoutService:
     if payout is None:
       raise NotFoundError("Payout not found")
 
-    if payout.status != PayoutStatus.PENDING.value:
+    if payout.status != PayoutStatus.PENDING:
       raise ConflictError("Only pending payouts can be updated")
 
     if payload.status == PayoutStatus.PAID:
@@ -123,7 +124,7 @@ class PayoutService:
     else:
       payout.paid_at = None
 
-    payout.status = payload.status.value
+    payout.status = payload.status
 
     await self.session.flush()
     await self.session.refresh(payout)
@@ -138,7 +139,7 @@ class PayoutService:
           "payout_id": payout.id,
           "venue_id": payout.venue_id,
           "amount": str(payout.amount),
-          "status": payout.status,
+          "status": payout.status.value,
           "paid_at": payout.paid_at.isoformat() if payout.paid_at else None,
         },
         metadata=EventMetadata(

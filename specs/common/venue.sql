@@ -34,13 +34,15 @@ CREATE INDEX "venues_idx_location" ON "venues" ("latitude", "longitude");
 CREATE INDEX "venues_idx_open" ON "venues" ("is_open", "deleted_at");
 
 
+CREATE TYPE payout_status AS ENUM ('pending', 'paid', 'cancelled');
+
 CREATE TABLE "payouts" (
     "id" BIGSERIAL PRIMARY KEY,
     "venue_id" BIGINT NOT NULL,
     "amount" DECIMAL(10, 2) NOT NULL,
     "period_start" DATE NOT NULL,
     "period_end" DATE NOT NULL,
-    "status" VARCHAR(50) DEFAULT 'pending',
+    "status" payout_status DEFAULT 'pending',
     "payment_details" JSONB DEFAULT '{}',
     "created_at" TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     "paid_at" TIMESTAMP WITH TIME ZONE,

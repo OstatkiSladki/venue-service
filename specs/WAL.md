@@ -25,6 +25,9 @@
 - `spec://project.venue-service/venue-spec#events` — при `pending -> paid` публикуется `payout.paid` через текущий event seam после commit.
 - `spec://project.venue-service/venue-spec#events` — `NoopEventPublisher` заменён на real `aio-pika` publisher с confirms/retry/reconnect и DLQ topology declaration.
 - `spec://project.venue-service/venue-spec#error-handling` — для обязательных publish операций действует fail-fast: при исчерпании retry возвращается `503 SERVICE_UNAVAILABLE`.
+- `spec://project.venue-service/venue-spec#venues-geo` — geo-search усилен: добавлен bounding box prefilter + безопасная distance формула; покрыто интеграционными тестами.
+- `spec://project.venue-service/venue-spec#database` — статус `payouts.status` переведён на SQL enum `payout_status` (модель + миграция + спецификация SQL).
+- `spec://project.venue-service/venue-spec#database` — выполнен аудит enum в `src/schemas`: DB-backed enum нужен только для `payouts.status`; `UserRole` остаётся transport-level enum для gateway headers и не маппится в SQL.
 
 ## In Progress
 ### DONE
@@ -32,7 +35,6 @@
 
 ### TODO
 - `spec://project.venue-service/venue-spec#ci` — добавить CI pipeline с обязательными `pytest`, `mypy`, `ruff` и migration checks.
-- `spec://project.venue-service/venue-spec#venues-geo` — усилить geo-search (bounding box + perf checks) и покрыть интеграционными тестами.
 
 ## Known Issues
 1. Для staff company-scope в create/update venues используется вывод company через `X-User-Venue-ID` -> lookup venue. Это работает в текущем контракте, но требует отдельной валидации на целостность staff profile в Auth сервисе на следующем этапе.

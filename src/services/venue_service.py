@@ -15,10 +15,10 @@ class VenueService:
   async def list_venues(
     self,
     *,
-    identity: IdentityContext,
+    identity: IdentityContext | None,
     query: VenueListQuery,
   ) -> tuple[list[Venue], int]:
-    if query.include_deleted and identity.role != UserRole.ADMIN:
+    if query.include_deleted and (not identity or identity.role != UserRole.ADMIN):
       raise ForbiddenError()
 
     items = await self.repository.list_filtered(
@@ -43,7 +43,7 @@ class VenueService:
     )
     return items, total
 
-  async def get_venue(self, *, venue_id: int, identity: IdentityContext) -> Venue:
+  async def get_venue(self, *, venue_id: int, identity: IdentityContext | None) -> Venue:
     _ = identity
     venue = await self.repository.get_by_id(venue_id)
     if venue is None:

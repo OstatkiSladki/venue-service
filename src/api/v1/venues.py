@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
-from src.api.deps import get_identity_context, get_venue_service
+from src.api.deps import get_identity_context, get_optional_identity_context, get_venue_service
 from src.schemas.common import IdentityContext, PaginatedResponse, PaginationMeta
 from src.schemas.venue import VenueCreate, VenueListQuery, VenueResponse, VenueUpdate
 from src.services.venue_service import VenueService
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/venues", tags=["Venues"])
 @router.get("", response_model=PaginatedResponse[VenueResponse])
 async def list_venues(
   service: Annotated[VenueService, Depends(get_venue_service)],
-  identity: Annotated[IdentityContext, Depends(get_identity_context)],
+  identity: Annotated[IdentityContext | None, Depends(get_optional_identity_context)],
   query: Annotated[VenueListQuery, Query()],
 ) -> PaginatedResponse[VenueResponse]:
   items, total = await service.list_venues(
@@ -40,7 +40,7 @@ async def create_venue(
 async def get_venue(
   venue_id: int,
   service: Annotated[VenueService, Depends(get_venue_service)],
-  identity: Annotated[IdentityContext, Depends(get_identity_context)],
+  identity: Annotated[IdentityContext | None, Depends(get_optional_identity_context)],
 ) -> VenueResponse:
   venue = await service.get_venue(venue_id=venue_id, identity=identity)
   return VenueResponse.model_validate(venue)

@@ -13,19 +13,17 @@ class CompanyService:
     self.repository = CompanyRepository(session)
 
   @staticmethod
-  def _require_admin(identity: IdentityContext) -> None:
-    if identity.role != UserRole.ADMIN:
+  def _require_admin(identity: IdentityContext | None) -> None:
+    if not identity or identity.role != UserRole.ADMIN:
       raise ForbiddenError()
 
   async def list_companies(
     self,
     *,
-    identity: IdentityContext,
+    identity: IdentityContext | None,
     query: CompanyListQuery,
   ) -> tuple[list[Company], int]:
-    self._require_admin(identity)
-
-    if query.include_deleted and identity.role != UserRole.ADMIN:
+    if query.include_deleted and (not identity or identity.role != UserRole.ADMIN):
       raise ForbiddenError()
 
     items = await self.repository.list(
@@ -36,8 +34,8 @@ class CompanyService:
     total = await self.repository.count(include_deleted=query.include_deleted)
     return items, total
 
-  async def get_company(self, *, company_id: int, identity: IdentityContext) -> Company:
-    self._require_admin(identity)
+  async def get_company(self, *, company_id: int, identity: IdentityContext | None) -> Company:
+    _ = identity
     company = await self.repository.get_by_id(company_id)
     if company is None:
       raise NotFoundError("Company not found")

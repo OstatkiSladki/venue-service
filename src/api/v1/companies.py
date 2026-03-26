@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, Query, status
 
-from src.api.deps import get_company_service, get_identity_context
+from src.api.deps import get_company_service, get_identity_context, get_optional_identity_context
 from src.schemas.common import IdentityContext, PaginatedResponse, PaginationMeta
 from src.schemas.company import CompanyCreate, CompanyListQuery, CompanyResponse, CompanyUpdate
 from src.services.company_service import CompanyService
@@ -13,7 +13,7 @@ router = APIRouter(prefix="/companies", tags=["Companies"])
 @router.get("", response_model=PaginatedResponse[CompanyResponse])
 async def list_companies(
   service: Annotated[CompanyService, Depends(get_company_service)],
-  identity: Annotated[IdentityContext, Depends(get_identity_context)],
+  identity: Annotated[IdentityContext | None, Depends(get_optional_identity_context)],
   query: Annotated[CompanyListQuery, Query()],
 ) -> PaginatedResponse[CompanyResponse]:
   items, total = await service.list_companies(
@@ -40,7 +40,7 @@ async def create_company(
 async def get_company(
   company_id: int,
   service: Annotated[CompanyService, Depends(get_company_service)],
-  identity: Annotated[IdentityContext, Depends(get_identity_context)],
+  identity: Annotated[IdentityContext | None, Depends(get_optional_identity_context)],
 ) -> CompanyResponse:
   company = await service.get_company(company_id=company_id, identity=identity)
   return CompanyResponse.model_validate(company)

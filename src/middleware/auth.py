@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
+from ipaddress import ip_address
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from src.core_exceptions import AppError, UnauthorizedError
+from src.config import get_settings
+from src.core_exceptions import AppError, ForbiddenError, UnauthorizedError
 from src.schemas.common import IdentityContext, UserRole
 
 
@@ -23,10 +25,6 @@ class GatewayAuthMiddleware(BaseHTTPMiddleware):
 
             if not user_id or not user_role_raw or not request_id:
                 raise UnauthorizedError("Missing gateway identity headers")
-
-            client_ip = self._extract_client_ip(request)
-            if client_ip is None:
-                raise UnauthorizedError("Client IP is missing")
 
             try:
                 role = UserRole(user_role_raw)

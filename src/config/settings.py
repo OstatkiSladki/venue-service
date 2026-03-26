@@ -27,10 +27,6 @@ class Settings(BaseSettings):
     log_level: str = "INFO"
     log_format: str = "json"
 
-    gateway_trusted_networks: str = Field(
-        default="10.0.0.0/8,172.16.0.0/12,192.168.0.0/16,127.0.0.1/32"
-    )
-
     @field_validator("debug", mode="before")
     @classmethod
     def normalize_debug_value(cls, value: Any) -> bool:
@@ -43,7 +39,6 @@ class Settings(BaseSettings):
             if normalized in {"0", "false", "no", "off", "release", "production"}:
                 return False
         return bool(value)
-
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:

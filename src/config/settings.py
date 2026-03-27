@@ -12,6 +12,7 @@ class Settings(BaseSettings):
   app_version: str = "1.0.0"
   app_env: str = "development"
   debug: bool = False
+  app_root_path: str = ""
 
   host: str = "0.0.0.0"
   port: int = 8002

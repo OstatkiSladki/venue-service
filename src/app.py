@@ -13,7 +13,12 @@ def create_app() -> FastAPI:
   settings = get_settings()
   configure_logging(settings)
 
-  app = FastAPI(title=settings.app_name, version=settings.app_version, lifespan=lifespan)
+  app = FastAPI(
+    title=settings.app_name,
+    version=settings.app_version,
+    root_path=settings.app_root_path,
+    lifespan=lifespan,
+  )
   cors_setup(app)
   app.add_middleware(RequestContextMiddleware)
 

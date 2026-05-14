@@ -16,6 +16,8 @@ class Settings(BaseSettings):
 
   host: str = "0.0.0.0"
   port: int = 8002
+  grpc_host: str = "0.0.0.0"
+  grpc_port: int = 50052
   workers: int = 1
   reload: bool = False
 

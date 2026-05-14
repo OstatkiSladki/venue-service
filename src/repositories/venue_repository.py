@@ -69,6 +69,11 @@ class VenueRepository(BaseRepository[Venue]):
     result = await self.session.execute(statement)
     return int(result.scalar_one())
 
+  async def get_by_id_for_update(self, venue_id: int) -> Venue | None:
+    statement = select(Venue).where(Venue.id == venue_id, Venue.deleted_at.is_(None)).with_for_update()
+    result = await self.session.execute(statement)
+    return result.scalar_one_or_none()
+
   @staticmethod
   def _apply_filters(
     statement: Select[Any],

@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from src.config import get_settings
 from src.db.session import close_engine
 from src.events.publisher import EventPublisher, NoopEventPublisher, RabbitMQEventPublisher
+from src.grpc import start_grpc_server, stop_grpc_server
 
 
 @asynccontextmanager
@@ -24,8 +25,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     publisher = NoopEventPublisher()
 
   app.state.event_publisher = publisher
+  grpc_server, grpc_health = await start_grpc_server()
+  app.state.grpc_server = grpc_server
+  app.state.grpc_health = grpc_health
   try:
     yield
   finally:
+    await stop_grpc_server(grpc_server, grpc_health)
     await publisher.close()
     await close_engine()
